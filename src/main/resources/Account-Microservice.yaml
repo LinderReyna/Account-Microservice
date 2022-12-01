@@ -1,0 +1,490 @@
+openapi: 3.0.0
+info:
+  title: Account Microservice
+  description: Account Microservice
+  version: 1.0.0
+servers:
+  - url: https://virtserver.swaggerhub.com/LINDERREYNAE/Account-Microservice/1.0.0
+    description: SwaggerHub API Auto Mocking
+paths:
+  /account:
+    post:
+      tags:
+        - Account
+      summary: Add a new Account to the database
+      description: Add a new Account to the database
+      operationId: addAccount
+      requestBody:
+        description: Create a new Account in the database
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Account'
+        required: true
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Account'
+        "405":
+          description: Invalid input
+    get:
+      tags:
+        - Account
+      summary: Find Accounts
+      description: Returns a all Accounts
+      operationId: getAccounts
+      responses:
+        "200":
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Account'
+        "404":
+          description: Invalid status value
+  /account/{id}:
+    put:
+      tags:
+        - Account
+      summary: Update an existing Account
+      description: Update an existing Account by Id
+      operationId: updateAccount
+      parameters:
+        - name: id
+          in: path
+          description: ID of Account to update
+          required: true
+          schema:
+            type: string
+      requestBody:
+        description: Update an existent Account in the database
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Account'
+        required: true
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Account'
+        "400":
+          description: Invalid ID supplied
+        "404":
+          description: Account not found
+        "405":
+          description: Validation exception
+    get:
+      tags:
+        - Account
+      summary: Find Account by ID
+      description: Returns a single Account
+      operationId: findAccountById
+      parameters:
+        - name: id
+          in: path
+          description: ID of Account to return
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Account'
+        "400":
+          description: Invalid ID supplied
+        "404":
+          description: Account not found
+    delete:
+      tags:
+        - Account
+      summary: Delete a Account
+      description: delete a Account
+      operationId: deleteAccountById
+      parameters:
+        - name: id
+          in: path
+          description: Account id to delete
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+      responses:
+        "400":
+          description: Invalid Account value
+  /account/{accountId}/transaction:
+    post:
+      tags:
+        - Transaction
+      summary: Add a new Transaction to the database
+      description: Add a new Transaction to the database
+      operationId: addTransaction
+      parameters:
+        - name: accountId
+          in: path
+          description: accountId of Transaction
+          required: true
+          schema:
+            type: string
+      requestBody:
+        description: Create a new Transaction in the database
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Transaction'
+        required: true
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transaction'
+        "405":
+          description: Invalid input
+    get:
+      tags:
+        - Transaction
+      summary: Find Transactions
+      description: Returns a all Transactions
+      operationId: getTransactions
+      parameters:
+        - name: accountId
+          in: path
+          description: accountId of Transaction
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Transaction'
+        "404":
+          description: Invalid status value
+  /account/{accountId}/transaction/{id}:
+    put:
+      tags:
+        - Transaction
+      summary: Update an existing Transaction
+      description: Update an existing Transaction by Id
+      operationId: updateTransaction
+      parameters:
+        - name: accountId
+          in: path
+          description: accountId of Transaction
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          description: ID of Transaction to update
+          required: true
+          schema:
+            type: string
+      requestBody:
+        description: Update an existent Transaction in the database
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Transaction'
+        required: true
+      responses:
+        "200":
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transaction'
+        "400":
+          description: Invalid ID supplied
+        "404":
+          description: Account not found
+        "405":
+          description: Validation exception
+    get:
+      tags:
+        - Transaction
+      summary: Find Transaction by ID
+      description: Returns a single Transaction
+      operationId: findTransactionById
+      parameters:
+        - name: accountId
+          in: path
+          description: accountId of Transaction
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          description: ID of Transaction to return
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Transaction'
+        "400":
+          description: Invalid ID supplied
+        "404":
+          description: Account not found
+    delete:
+      tags:
+        - Transaction
+      summary: Delete a Transaction
+      description: delete a Transaction
+      operationId: deleteTransactionById
+      parameters:
+        - name: accountId
+          in: path
+          description: accountId of Transaction
+          required: true
+          schema:
+            type: string
+        - name: id
+          in: path
+          description: Transaction id to delete
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+      responses:
+        "400":
+          description: Invalid Transaction value
+components:
+  schemas:
+    Product:
+      readOnly: true
+      type: object
+      properties:
+        id:
+          type: string
+          description: ID
+        type:
+          type: string
+          description: Product type
+        currency:
+          type: string
+          description: Currency
+        name:
+          type: string
+          description: Name
+        description:
+          type: string
+          description: Description
+    Personal:
+      readOnly: true
+      type: object
+      properties:
+        names:
+          type: string
+          description: Names
+        fatherLastName:
+          type: string
+          description: Father last name
+        motherLastName:
+          type: string
+          description: Mother last name
+        documentType:
+          type: string
+          description: Document type
+        documentNumber:
+          type: string
+          description: Document number
+    Business:
+      type: object
+      properties:
+        legalName:
+          type: string
+          description: Name
+        fullName:
+          type: string
+          description: Name
+        ruc:
+          type: string
+          description: RUC
+    Customer:
+      readOnly: true
+      type: object
+      properties:
+        id:
+          type: string
+          description: ID
+        type:
+          type: string
+          description: Customer type
+        personal:
+          $ref: '#/components/schemas/Personal'
+        business:
+          $ref: '#/components/schemas/Business'
+        email:
+          type: string
+          description: Email
+        phone:
+          type: string
+          description: Phone
+    Balance:
+      required:
+        - balanceAmount
+        - balanceType
+      type: object
+      properties:
+        balanceAmount:
+          type: number
+          format: currency
+          description: Balance Amount
+          example: 1000.00
+        balanceType:
+          type: string
+          description: Balance Type
+          enum:
+            - Disponible
+            - Contable
+            - Retenido
+    Account:
+      required:
+        - type
+        - currency
+        - name
+        - description
+      type: object
+      properties:
+        id:
+          type: string
+          readOnly: true
+        accountNumber:
+          type: string
+          minimum: 14
+          maximum: 14
+          description: Account Number
+          example: 19111111111111
+        cci:
+          type: string
+          minimum: 18
+          maximum: 18
+          description: CCI
+          example: 222191111111111112
+        productId:
+          type: string
+          description: Product ID
+          example: 6386e2cc35049a3f6bfcfd7b
+        product:
+          $ref: '#/components/schemas/Product'
+        customerId:
+          type: string
+          description: Customer ID
+          example: 63859d334306d301128cf352
+        customer:
+          $ref: '#/components/schemas/Customer'
+        status:
+          type: string
+          description: Status
+          enum:
+            - Activa
+            - Inactiva
+            - Bloqueada
+        balance:
+          type: array
+          items:
+            $ref: '#/components/schemas/Balance'
+        createdAt:
+          type: string
+          format: date-time
+          description: Creation date
+          example: "2022-12-30T20:30:00Z"
+          readOnly: true
+        updatedAt:
+          type: string
+          format: date-time
+          description: Updated date
+          example: "2022-12-30T20:30:00Z"
+          readOnly: true
+    Transaction:
+      required:
+        - transactionAmount
+        - referenceInformation
+        - type
+        - description
+      type: object
+      properties:
+        id:
+          type: string
+          readOnly: true
+        transactionAmount:
+          type: number
+          format: currency
+          description: Balance Amount
+          example: 80.00
+        referenceInformation:
+          type: string
+          description: Reference Information
+          example: 10014552211145
+        processingDate:
+          type: string
+          format: date-time
+          description: Processing Date
+          example: "2022-12-30T20:30:00Z"
+        type:
+          type: string
+          description: Type
+          enum:
+            - Cargo
+            - Abono
+        accountId:
+          type: string
+          description: Account ID
+          example: 63859d33434879511128cf352
+          readOnly: true
+        description:
+          type: string
+          description: Description
+          example: Claro pago telefono
+        createdAt:
+          type: string
+          format: date-time
+          description: Creation date
+          example: "2022-12-30T20:30:00Z"
+          readOnly: true
+        updatedAt:
+          type: string
+          format: date-time
+          description: Updated date
+          example: "2022-12-30T20:30:00Z"
+          readOnly: true
+  requestBodies:
+    Account:
+      description: Account object that needs to be added to the database
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Account'
+    Transaction:
+      description: Transaction object that needs to be added to the database
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Transaction'
