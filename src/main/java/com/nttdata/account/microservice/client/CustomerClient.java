@@ -5,11 +5,13 @@ import com.nttdata.account.microservice.model.Customer;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Component;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import reactivefeign.spring.config.ReactiveFeignClient;
 import reactor.core.publisher.Mono;
 
+@Component
 @ReactiveFeignClient(name = "customer-microservice", url = "${customer.service.url}", path = "${customer.service.path}")
 public interface CustomerClient {
 

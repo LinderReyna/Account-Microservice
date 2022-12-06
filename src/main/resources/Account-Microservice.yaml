@@ -277,6 +277,26 @@ paths:
           description: Invalid Transaction value
 components:
   schemas:
+    BankAccount:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Name
+        maintenance:
+          type: number
+          format: currency
+          description: maintenance fee
+        movement:
+          type: integer
+          description: maximum limit of monthly movements
+          format: int32
+        fixedDay:
+          type: array
+          items:
+            type: integer
+            description: specific day for a movement
+            format: int32
     Product:
       readOnly: true
       type: object
@@ -290,12 +310,11 @@ components:
         currency:
           type: string
           description: Currency
-        name:
-          type: string
-          description: Name
         description:
           type: string
           description: Description
+        bankAccount:
+          $ref: '#/components/schemas/BankAccount'
     Personal:
       readOnly: true
       type: object
