@@ -5,7 +5,9 @@ import org.springframework.data.mongodb.repository.ReactiveMongoRepository;
 import org.springframework.stereotype.Repository;
 import reactor.core.publisher.Flux;
 
+import java.util.List;
+
 @Repository
 public interface AccountRepository extends ReactiveMongoRepository<Account, String> {
-    Flux<Account> findAllByCustomerId(String customerId);
+    Flux<Account> findAllByTitularId(List<String> titularId);
 }

@@ -6,6 +6,7 @@ import org.springframework.data.mongodb.core.index.Indexed;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.time.OffsetDateTime;
+import java.util.ArrayList;
 import java.util.List;
 
 @Data
@@ -18,7 +19,8 @@ public class Account {
     @Indexed(unique = true)
     private String cci;
     private String productId;
-    private String customerId;
+    private List<String> titularId = new ArrayList<>();
+    private List<String> signatoryId = null;
     private String status;
     private List<Balance> balance;
     private OffsetDateTime createdAt;

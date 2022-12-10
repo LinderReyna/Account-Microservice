@@ -386,10 +386,11 @@ components:
             - Retenido
     Account:
       required:
-        - type
-        - currency
-        - name
-        - description
+        - accountNumber
+        - cci
+        - productId
+        - titularId
+        - status
       type: object
       properties:
         id:
@@ -413,12 +414,28 @@ components:
           example: 6386e2cc35049a3f6bfcfd7b
         product:
           $ref: '#/components/schemas/Product'
-        customerId:
-          type: string
-          description: Customer ID
-          example: 63859d334306d301128cf352
-        customer:
-          $ref: '#/components/schemas/Customer'
+        titularId:
+          type: array
+          items:
+            type: string
+            description: Titular
+            example: 63859d334306d301128cf352
+        titular:
+          type: array
+          readOnly: true
+          items:
+            $ref: '#/components/schemas/Customer'
+        signatoryId:
+          type: array
+          items:
+            type: string
+            description: Signatory
+            example: 63859d334306d301128cf352
+        signatory:
+          type: array
+          readOnly: true
+          items:
+            $ref: '#/components/schemas/Customer'
         status:
           type: string
           description: Status

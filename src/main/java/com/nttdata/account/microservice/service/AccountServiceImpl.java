@@ -11,14 +11,16 @@ import com.nttdata.account.microservice.model.Product;
 import com.nttdata.account.microservice.repository.AccountRepository;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
 import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 @Slf4j
 @Service
@@ -40,7 +42,8 @@ public class AccountServiceImpl implements AccountService {
     private ProductClient productClient;
 
     public Mono<Account> save(Mono<Account> account) {
-        return account.filterWhen(this::validation)
+        return account.filterWhen(this::validTitular)
+                .filterWhen(this::validSignatory)
                 .map(mapper::toDocument)
                 .flatMap(repository::save)
                 .map(mapper::toModel);
@@ -69,43 +72,73 @@ public class AccountServiceImpl implements AccountService {
     }
 
     @Override
-    public Flux<Account> findAllByCustomerId(String customerId) {
-        return repository.findAllByCustomerId(customerId)
+    public Flux<Account> findAllByTitularId(List<String> titularId) {
+        return repository.findAllByTitularId(titularId)
                 .map(mapper::toModel);
     }
 
     private Mono<Customer> getCustomer(String id) {
-        return customerClient.findById(id)
-                .mapNotNull(HttpEntity::getBody)
-                .onErrorMap(throwable -> new NotFoundException("Cliente no encontrado, verificar ID de Cliente"));
+        return customerClient.findById(id);
     }
 
     private Mono<Product> getProduct(String id){
-        return productClient.findById(id)
-                .mapNotNull(HttpEntity::getBody)
-                .onErrorMap(throwable -> new NotFoundException("Producto no encontrado, verificar ID de Producto"));
+        return productClient.findById(id);
     }
 
     private Flux<Product> getProducts(){
-        return productClient.findAllByName(Arrays.asList(SAVINGS_ACCOUNT, CURRENT_ACCOUNT, FIXED_TERM_ACCOUNT))
-                .mapNotNull(HttpEntity::getBody)
-                .flatMapMany(p -> p)
-                .onErrorMap(throwable -> new NotFoundException("Producto no encontrado, verificar Nombre de Producto"));
+        return productClient.findAllByName(Arrays.asList(SAVINGS_ACCOUNT, CURRENT_ACCOUNT, FIXED_TERM_ACCOUNT));
     }
 
-    private Mono<Boolean> validation(Account account) {
-        Flux<Account> accounts = findAllByCustomerId(account.getCustomerId());
-        Flux<Product> products = getProducts();
-        Mono<Customer> customer = getCustomer(account.getCustomerId());
-
-        return customer.flatMap(c -> {
-            if (Objects.equals(c.getType(), CUSTOMER_PERSONAL)) {
-                return validPersonal(account, accounts, products);
-            } else if (Objects.equals(c.getType(), CUSTOMER_BUSINESS)) {
-                return Mono.just(false);
+    private Mono<Boolean> validSignatory(Account account) {
+        Mono<Boolean> isValid = Mono.just(true);
+        if (account.getSignatoryId() != null) {
+            for (String id: account.getSignatoryId()) {
+                isValid = getCustomer(id).flatMap(c -> {
+                    if (!Objects.equals(c.getType(), CUSTOMER_BUSINESS)) {
+                        return Mono.error(new InvalidDataException("El cliente " + id + " no es valido"));
+                    }
+                    return Mono.just(true);
+                });
             }
-            return Mono.just(false);
-        });
+        }
+        return isValid;
+    }
+
+    private Mono<Boolean> validTitular(Account account) {
+        AtomicBoolean isPersonal = new AtomicBoolean(false);
+        Mono<Boolean> isValid = Mono.just(false);
+        if (account.getTitularId() == null || account.getTitularId().isEmpty()){
+            throw new InvalidDataException("Se debe ingresar un titular");
+        }
+        for (String id: account.getTitularId()) {
+            isValid = getCustomer(id).flatMap(c -> {
+                if (isPersonal.get()) {
+                    return Mono.error(new InvalidDataException("Solo las cuentas bancarias empresariales pueden tener uno o más titulares"));
+                } else if (Objects.equals(c.getType(), CUSTOMER_PERSONAL)) {
+                    isPersonal.set(true);
+                    return validPersonal(account, findAllByTitularId(Collections.singletonList(id)), getProducts());
+                } else if (Objects.equals(c.getType(), CUSTOMER_BUSINESS)) {
+                    return validBusiness(account);
+                }
+                return Mono.just(false);
+            });
+            isValid = isValid.map(b -> {
+                if (!b)
+                    throw new InvalidDataException("El cliente " + id + " no es valido");
+                return b;
+            });
+        }
+        return isValid;
+    }
+
+    private Mono<Boolean> validBusiness(Account account) {
+        return getProduct(account.getProductId())
+                .map(p -> Objects.equals(p.getType(), CURRENT_ACCOUNT))
+                .map(v -> {
+                    if (!v)
+                        throw new InvalidDataException("Un cliente empresarial no puede tener una cuenta de ahorro o de plazo fijo");
+                    return true;
+                });
     }
 
     private Mono<Boolean> validPersonal(Account account, Flux<Account> accounts, Flux<Product> products) {

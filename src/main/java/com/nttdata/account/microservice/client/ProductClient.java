@@ -4,7 +4,6 @@ import com.nttdata.account.microservice.exception.NotFoundException;
 import com.nttdata.account.microservice.model.Product;
 import io.github.resilience4j.circuitbreaker.annotation.CircuitBreaker;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -21,21 +20,21 @@ public interface ProductClient {
 
     @GetMapping(value = "/product/{id}")
     @CircuitBreaker(name = "ProductCircuitBreaker", fallbackMethod = "ProductByIDFallback")
-    Mono<ResponseEntity<Product>> findById(@PathVariable("id") String id);
+    Mono<Product> findById(@PathVariable("id") String id);
 
     @GetMapping(value = "/product/findByName")
     @CircuitBreaker(name = "ProductCircuitBreaker", fallbackMethod = "ProductByNameFallback")
-    Mono<ResponseEntity<Flux<Product>>> findAllByName(@RequestParam(value = "name") List<String> name);
+    Flux<Product> findAllByName(@RequestParam(value = "name") List<String> name);
 
     @Slf4j
     final class LogHolder
     {}
-    default Mono<ResponseEntity<Product>> ProductByIDFallback(String id, Exception e) {
+    default Mono<Product> ProductByIDFallback(String id, Throwable e) {
         LogHolder.log.error("failure Product-Microservice: " + e.getMessage());
         throw new NotFoundException("failure Product-Microservice: verify product or try later");
     }
 
-    default Mono<ResponseEntity<Flux<Product>>> ProductByNameFallback(List<String> name, Exception e) {
+    default Flux<Product> ProductByNameFallback(List<String> name, Throwable e) {
         LogHolder.log.error("failure Product-Microservice: " + e.getMessage());
         throw new NotFoundException("failure Product-Microservice: verify product name or try later");
     }
