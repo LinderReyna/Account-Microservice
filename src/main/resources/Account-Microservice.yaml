@@ -287,9 +287,17 @@ components:
           type: number
           format: currency
           description: maintenance fee
+        transactionFee:
+          type: number
+          format: currency
+          description: transaction fee
         movement:
           type: integer
           description: maximum limit of monthly movements
+          format: int32
+        freeTransaction:
+          type: integer
+          description: Free Transaction
           format: int32
         fixedDay:
           type: array
@@ -375,6 +383,7 @@ components:
         balanceAmount:
           type: number
           format: currency
+          minimum: 0.00
           description: Balance Amount
           example: 1000.00
         balanceType:
@@ -391,6 +400,7 @@ components:
         - productId
         - titularId
         - status
+        - balance
       type: object
       properties:
         id:
@@ -475,9 +485,9 @@ components:
           format: currency
           description: Balance Amount
           example: 80.00
-        referenceInformation:
+        destinationAccountId:
           type: string
-          description: Reference Information
+          description: Destination Account ID
           example: 10014552211145
         processingDate:
           type: string

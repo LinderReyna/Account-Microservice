@@ -3,9 +3,9 @@ package com.nttdata.account.microservice.service;
 import com.nttdata.account.microservice.client.CustomerClient;
 import com.nttdata.account.microservice.client.ProductClient;
 import com.nttdata.account.microservice.exception.InvalidDataException;
-import com.nttdata.account.microservice.exception.NotFoundException;
 import com.nttdata.account.microservice.mapper.AccountMapper;
 import com.nttdata.account.microservice.model.Account;
+import com.nttdata.account.microservice.model.Balance;
 import com.nttdata.account.microservice.model.Customer;
 import com.nttdata.account.microservice.model.Product;
 import com.nttdata.account.microservice.repository.AccountRepository;
@@ -16,10 +16,8 @@ import org.springframework.transaction.annotation.Transactional;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
+import java.math.BigDecimal;
+import java.util.*;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 @Slf4j
@@ -44,6 +42,7 @@ public class AccountServiceImpl implements AccountService {
     public Mono<Account> save(Mono<Account> account) {
         return account.filterWhen(this::validTitular)
                 .filterWhen(this::validSignatory)
+                .map(this::validBalance)
                 .map(mapper::toDocument)
                 .flatMap(repository::save)
                 .map(mapper::toModel);
@@ -57,7 +56,13 @@ public class AccountServiceImpl implements AccountService {
 
     public Mono<Account> findById(String id) {
         return repository.findById(id)
-                .map(mapper::toModel);
+                .map(mapper::toModel)
+                .zipWhen(a -> getProduct(a.getProductId()))
+                .map(t -> {
+                    Account account = t.getT1();
+                    account.setProduct(t.getT2());
+                    return account;
+                });
     }
 
     public Flux<Account> findAll() {
@@ -81,12 +86,38 @@ public class AccountServiceImpl implements AccountService {
         return customerClient.findById(id);
     }
 
-    private Mono<Product> getProduct(String id){
+    private Mono<Product> getProduct(String id) {
         return productClient.findById(id);
     }
 
-    private Flux<Product> getProducts(){
+    private Flux<Product> getProducts() {
         return productClient.findAllByName(Arrays.asList(SAVINGS_ACCOUNT, CURRENT_ACCOUNT, FIXED_TERM_ACCOUNT));
+    }
+
+    private Account validBalance(Account account) {
+        if (account.getBalance() == null)
+            throw new InvalidDataException("Las cuentas bancarias tienen un monto mínimo de apertura que puede ser cero");
+        BigDecimal available = BigDecimal.ZERO;
+        BigDecimal retired = BigDecimal.ZERO;
+        List<Balance> balances = new ArrayList<>();
+        for (Balance balance: account.getBalance()) {
+            switch (balance.getBalanceType()) {
+                case DISPONIBLE:
+                    if (balance.getBalanceAmount().compareTo(BigDecimal.ZERO) < 0)
+                        throw new InvalidDataException("Las cuentas bancarias tienen un monto mínimo de apertura que puede ser cero");
+                    available = balance.getBalanceAmount();
+                    break;
+                case RETENIDO:
+                    retired = balance.getBalanceAmount();
+                    break;
+                case CONTABLE:
+                    balance.setBalanceAmount(available.add(retired));
+                    break;
+            }
+            balances.add(balance);
+        }
+        account.setBalance(balances);
+        return account;
     }
 
     private Mono<Boolean> validSignatory(Account account) {
@@ -107,7 +138,7 @@ public class AccountServiceImpl implements AccountService {
     private Mono<Boolean> validTitular(Account account) {
         AtomicBoolean isPersonal = new AtomicBoolean(false);
         Mono<Boolean> isValid = Mono.just(false);
-        if (account.getTitularId() == null || account.getTitularId().isEmpty()){
+        if (account.getTitularId() == null || account.getTitularId().isEmpty()) {
             throw new InvalidDataException("Se debe ingresar un titular");
         }
         for (String id: account.getTitularId()) {
@@ -116,7 +147,8 @@ public class AccountServiceImpl implements AccountService {
                     return Mono.error(new InvalidDataException("Solo las cuentas bancarias empresariales pueden tener uno o más titulares"));
                 } else if (Objects.equals(c.getType(), CUSTOMER_PERSONAL)) {
                     isPersonal.set(true);
-                    return validPersonal(account, findAllByTitularId(Collections.singletonList(id)), getProducts());
+                    return validPersonal(account, findAllByTitularId(Collections.singletonList(id))
+                            .filter(x -> !x.getId().equals(account.getId())), getProducts());
                 } else if (Objects.equals(c.getType(), CUSTOMER_BUSINESS)) {
                     return validBusiness(account);
                 }
@@ -133,7 +165,7 @@ public class AccountServiceImpl implements AccountService {
 
     private Mono<Boolean> validBusiness(Account account) {
         return getProduct(account.getProductId())
-                .map(p -> Objects.equals(p.getType(), CURRENT_ACCOUNT))
+                .map(p -> Objects.equals(p.getBankAccount().getName(), CURRENT_ACCOUNT))
                 .map(v -> {
                     if (!v)
                         throw new InvalidDataException("Un cliente empresarial no puede tener una cuenta de ahorro o de plazo fijo");
@@ -156,7 +188,7 @@ public class AccountServiceImpl implements AccountService {
                 })
                 .zipWith(accountExists(products, accounts, FIXED_TERM_ACCOUNT))
                 .flatMap(b -> getProduct(account.getProductId())
-                        .map(p -> Objects.equals(p.getType(), FIXED_TERM_ACCOUNT))
+                        .map(p -> Objects.equals(p.getBankAccount().getName(), FIXED_TERM_ACCOUNT))
                         .map(v -> {
                             if (!v && b.getT2())
                                 throw new InvalidDataException("Un cliente personal solo puede tener un máximo cuentas a plazo fijo");

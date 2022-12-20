@@ -142,6 +142,12 @@
 							<packageName>com.nttdata.account.microservice</packageName>
 							<apiPackage>com.nttdata.account.microservice.api</apiPackage>
 							<modelPackage>com.nttdata.account.microservice.model</modelPackage>
+							<typeMappings>
+								<typeMapping>OffsetDateTime=Instant</typeMapping>
+							</typeMappings>
+							<importMappings>
+								<importMapping>java.time.OffsetDateTime=java.time.Instant</importMapping>
+							</importMappings>
 						</configuration>
 					</execution>
 				</executions>
