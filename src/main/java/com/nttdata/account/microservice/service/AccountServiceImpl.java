@@ -5,7 +5,6 @@ import com.nttdata.account.microservice.client.ProductClient;
 import com.nttdata.account.microservice.exception.InvalidDataException;
 import com.nttdata.account.microservice.mapper.AccountMapper;
 import com.nttdata.account.microservice.model.Account;
-import com.nttdata.account.microservice.model.Balance;
 import com.nttdata.account.microservice.model.Customer;
 import com.nttdata.account.microservice.model.Product;
 import com.nttdata.account.microservice.repository.AccountRepository;
@@ -56,13 +55,7 @@ public class AccountServiceImpl implements AccountService {
 
     public Mono<Account> findById(String id) {
         return repository.findById(id)
-                .map(mapper::toModel)
-                .zipWhen(a -> getProduct(a.getProductId()))
-                .map(t -> {
-                    Account account = t.getT1();
-                    account.setProduct(t.getT2());
-                    return account;
-                });
+                .map(mapper::toModel);
     }
 
     public Flux<Account> findAll() {
@@ -72,7 +65,7 @@ public class AccountServiceImpl implements AccountService {
 
     public Mono<Account> update(Mono<Account> account, String id) {
         return save(findById(id)
-                .flatMap(c -> account)
+                .flatMap(c -> account.doOnNext(x -> x.setCreatedAt(c.getCreatedAt())))
                 .doOnNext(e -> e.setId(id)));
     }
 
@@ -95,72 +88,44 @@ public class AccountServiceImpl implements AccountService {
     }
 
     private Account validBalance(Account account) {
-        if (account.getBalance() == null)
+        if (account.getAvailableBalance() == null || account.getAvailableBalance().compareTo(BigDecimal.ZERO) < 0)
             throw new InvalidDataException("Las cuentas bancarias tienen un monto mínimo de apertura que puede ser cero");
-        BigDecimal available = BigDecimal.ZERO;
-        BigDecimal retired = BigDecimal.ZERO;
-        List<Balance> balances = new ArrayList<>();
-        for (Balance balance: account.getBalance()) {
-            switch (balance.getBalanceType()) {
-                case DISPONIBLE:
-                    if (balance.getBalanceAmount().compareTo(BigDecimal.ZERO) < 0)
-                        throw new InvalidDataException("Las cuentas bancarias tienen un monto mínimo de apertura que puede ser cero");
-                    available = balance.getBalanceAmount();
-                    break;
-                case RETENIDO:
-                    retired = balance.getBalanceAmount();
-                    break;
-                case CONTABLE:
-                    balance.setBalanceAmount(available.add(retired));
-                    break;
-            }
-            balances.add(balance);
-        }
-        account.setBalance(balances);
         return account;
     }
 
-    private Mono<Boolean> validSignatory(Account account) {
-        Mono<Boolean> isValid = Mono.just(true);
-        if (account.getSignatoryId() != null) {
-            for (String id: account.getSignatoryId()) {
-                isValid = getCustomer(id).flatMap(c -> {
-                    if (!Objects.equals(c.getType(), CUSTOMER_BUSINESS)) {
-                        return Mono.error(new InvalidDataException("El cliente " + id + " no es valido"));
-                    }
-                    return Mono.just(true);
-                });
-            }
+    private Flux<Boolean> validSignatory(Account account) {
+        if (account.getSignatoryId() == null || account.getSignatoryId().isEmpty()) {
+            return Flux.just(true);
         }
-        return isValid;
+        return Flux.fromIterable(account.getSignatoryId())
+                .flatMap(id -> getCustomer(id).flatMap(c -> {
+                    if (!Objects.equals(c.getType(), CUSTOMER_BUSINESS))
+                        return Mono.error(new InvalidDataException("El cliente " + id + " no es valido"));
+                    return Mono.just(true);
+                }));
     }
 
-    private Mono<Boolean> validTitular(Account account) {
+    private Flux<Boolean> validTitular(Account account) {
         AtomicBoolean isPersonal = new AtomicBoolean(false);
-        Mono<Boolean> isValid = Mono.just(false);
         if (account.getTitularId() == null || account.getTitularId().isEmpty()) {
             throw new InvalidDataException("Se debe ingresar un titular");
         }
-        for (String id: account.getTitularId()) {
-            isValid = getCustomer(id).flatMap(c -> {
-                if (isPersonal.get()) {
-                    return Mono.error(new InvalidDataException("Solo las cuentas bancarias empresariales pueden tener uno o más titulares"));
-                } else if (Objects.equals(c.getType(), CUSTOMER_PERSONAL)) {
-                    isPersonal.set(true);
-                    return validPersonal(account, findAllByTitularId(Collections.singletonList(id))
-                            .filter(x -> !x.getId().equals(account.getId())), getProducts());
-                } else if (Objects.equals(c.getType(), CUSTOMER_BUSINESS)) {
-                    return validBusiness(account);
-                }
-                return Mono.just(false);
-            });
-            isValid = isValid.map(b -> {
-                if (!b)
-                    throw new InvalidDataException("El cliente " + id + " no es valido");
-                return b;
-            });
-        }
-        return isValid;
+        return Flux.fromIterable(account.getTitularId())
+                .flatMap(id -> getCustomer(id).flatMap(c -> {
+                    if (isPersonal.get()) {
+                        return Mono.error(new InvalidDataException("Solo las cuentas bancarias empresariales pueden tener uno o más titulares"));
+                    } else if (Objects.equals(c.getType(), CUSTOMER_PERSONAL)) {
+                        isPersonal.set(true);
+                        return validPersonal(account, findAllByTitularId(Collections.singletonList(id))
+                                .filter(x -> !x.getId().equals(account.getId())), getProducts());
+                    } else if (Objects.equals(c.getType(), CUSTOMER_BUSINESS)) {
+                        return validBusiness(account);
+                    }
+                    return Mono.just(false);
+                }).doOnNext(b -> {
+                    if (!b)
+                        throw new InvalidDataException("El cliente " + id + " no es valido");
+                }));
     }
 
     private Mono<Boolean> validBusiness(Account account) {

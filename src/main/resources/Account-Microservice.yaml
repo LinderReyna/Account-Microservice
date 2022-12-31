@@ -125,274 +125,8 @@ paths:
       responses:
         "400":
           description: Invalid Account value
-  /account/{accountId}/transaction:
-    post:
-      tags:
-        - Transaction
-      summary: Add a new Transaction to the database
-      description: Add a new Transaction to the database
-      operationId: addTransaction
-      parameters:
-        - name: accountId
-          in: path
-          description: accountId of Transaction
-          required: true
-          schema:
-            type: string
-      requestBody:
-        description: Create a new Transaction in the database
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Transaction'
-        required: true
-      responses:
-        "200":
-          description: Successful operation
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Transaction'
-        "405":
-          description: Invalid input
-    get:
-      tags:
-        - Transaction
-      summary: Find Transactions
-      description: Returns a all Transactions
-      operationId: getTransactions
-      parameters:
-        - name: accountId
-          in: path
-          description: accountId of Transaction
-          required: true
-          schema:
-            type: string
-      responses:
-        "200":
-          description: successful operation
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Transaction'
-        "404":
-          description: Invalid status value
-  /account/{accountId}/transaction/{id}:
-    put:
-      tags:
-        - Transaction
-      summary: Update an existing Transaction
-      description: Update an existing Transaction by Id
-      operationId: updateTransaction
-      parameters:
-        - name: accountId
-          in: path
-          description: accountId of Transaction
-          required: true
-          schema:
-            type: string
-        - name: id
-          in: path
-          description: ID of Transaction to update
-          required: true
-          schema:
-            type: string
-      requestBody:
-        description: Update an existent Transaction in the database
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Transaction'
-        required: true
-      responses:
-        "200":
-          description: Successful operation
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Transaction'
-        "400":
-          description: Invalid ID supplied
-        "404":
-          description: Account not found
-        "405":
-          description: Validation exception
-    get:
-      tags:
-        - Transaction
-      summary: Find Transaction by ID
-      description: Returns a single Transaction
-      operationId: findTransactionById
-      parameters:
-        - name: accountId
-          in: path
-          description: accountId of Transaction
-          required: true
-          schema:
-            type: string
-        - name: id
-          in: path
-          description: ID of Transaction to return
-          required: true
-          style: simple
-          explode: false
-          schema:
-            type: string
-      responses:
-        "200":
-          description: successful operation
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Transaction'
-        "400":
-          description: Invalid ID supplied
-        "404":
-          description: Account not found
-    delete:
-      tags:
-        - Transaction
-      summary: Delete a Transaction
-      description: delete a Transaction
-      operationId: deleteTransactionById
-      parameters:
-        - name: accountId
-          in: path
-          description: accountId of Transaction
-          required: true
-          schema:
-            type: string
-        - name: id
-          in: path
-          description: Transaction id to delete
-          required: true
-          style: simple
-          explode: false
-          schema:
-            type: string
-      responses:
-        "400":
-          description: Invalid Transaction value
 components:
   schemas:
-    BankAccount:
-      type: object
-      properties:
-        name:
-          type: string
-          description: Name
-        maintenance:
-          type: number
-          format: currency
-          description: maintenance fee
-        transactionFee:
-          type: number
-          format: currency
-          description: transaction fee
-        movement:
-          type: integer
-          description: maximum limit of monthly movements
-          format: int32
-        freeTransaction:
-          type: integer
-          description: Free Transaction
-          format: int32
-        fixedDay:
-          type: array
-          items:
-            type: integer
-            description: specific day for a movement
-            format: int32
-    Product:
-      readOnly: true
-      type: object
-      properties:
-        id:
-          type: string
-          description: ID
-        type:
-          type: string
-          description: Product type
-        currency:
-          type: string
-          description: Currency
-        description:
-          type: string
-          description: Description
-        bankAccount:
-          $ref: '#/components/schemas/BankAccount'
-    Personal:
-      readOnly: true
-      type: object
-      properties:
-        names:
-          type: string
-          description: Names
-        fatherLastName:
-          type: string
-          description: Father last name
-        motherLastName:
-          type: string
-          description: Mother last name
-        documentType:
-          type: string
-          description: Document type
-        documentNumber:
-          type: string
-          description: Document number
-    Business:
-      type: object
-      properties:
-        legalName:
-          type: string
-          description: Name
-        fullName:
-          type: string
-          description: Name
-        ruc:
-          type: string
-          description: RUC
-    Customer:
-      readOnly: true
-      type: object
-      properties:
-        id:
-          type: string
-          description: ID
-        type:
-          type: string
-          description: Customer type
-        personal:
-          $ref: '#/components/schemas/Personal'
-        business:
-          $ref: '#/components/schemas/Business'
-        email:
-          type: string
-          description: Email
-        phone:
-          type: string
-          description: Phone
-    Balance:
-      required:
-        - balanceAmount
-        - balanceType
-      type: object
-      properties:
-        balanceAmount:
-          type: number
-          format: currency
-          minimum: 0.00
-          description: Balance Amount
-          example: 1000.00
-        balanceType:
-          type: string
-          description: Balance Type
-          enum:
-            - Disponible
-            - Contable
-            - Retenido
     Account:
       required:
         - accountNumber
@@ -400,7 +134,7 @@ components:
         - productId
         - titularId
         - status
-        - balance
+        - availableBalance
       type: object
       properties:
         id:
@@ -408,44 +142,32 @@ components:
           readOnly: true
         accountNumber:
           type: string
-          minimum: 14
-          maximum: 14
+          minimum: 13
+          maximum: 16
           description: Account Number
-          example: 19111111111111
+          example: 193-1315179-0-35
         cci:
           type: string
-          minimum: 18
-          maximum: 18
+          minimum: 20
+          maximum: 22
           description: CCI
-          example: 222191111111111112
+          example: 002-193-00131517903512
         productId:
           type: string
           description: Product ID
           example: 6386e2cc35049a3f6bfcfd7b
-        product:
-          $ref: '#/components/schemas/Product'
         titularId:
           type: array
           items:
             type: string
             description: Titular
             example: 63859d334306d301128cf352
-        titular:
-          type: array
-          readOnly: true
-          items:
-            $ref: '#/components/schemas/Customer'
         signatoryId:
           type: array
           items:
             type: string
             description: Signatory
             example: 63859d334306d301128cf352
-        signatory:
-          type: array
-          readOnly: true
-          items:
-            $ref: '#/components/schemas/Customer'
         status:
           type: string
           description: Status
@@ -453,62 +175,16 @@ components:
             - Activa
             - Inactiva
             - Bloqueada
-        balance:
-          type: array
-          items:
-            $ref: '#/components/schemas/Balance'
-        createdAt:
-          type: string
-          format: date-time
-          description: Creation date
-          example: "2022-12-30T20:30:00Z"
-          readOnly: true
-        updatedAt:
-          type: string
-          format: date-time
-          description: Updated date
-          example: "2022-12-30T20:30:00Z"
-          readOnly: true
-    Transaction:
-      required:
-        - transactionAmount
-        - referenceInformation
-        - type
-        - description
-      type: object
-      properties:
-        id:
-          type: string
-          readOnly: true
-        transactionAmount:
+        availableBalance:
           type: number
           format: currency
           description: Balance Amount
-          example: 80.00
-        destinationAccountId:
-          type: string
-          description: Destination Account ID
-          example: 10014552211145
-        processingDate:
-          type: string
-          format: date-time
-          description: Processing Date
-          example: "2022-12-30T20:30:00Z"
-        type:
-          type: string
-          description: Type
-          enum:
-            - Cargo
-            - Abono
-        accountId:
-          type: string
-          description: Account ID
-          example: 63859d33434879511128cf352
-          readOnly: true
-        description:
-          type: string
-          description: Description
-          example: Claro pago telefono
+          example: 1000.00
+        retainedBalance:
+          type: number
+          format: currency
+          description: Balance Amount
+          example: 10.00
         createdAt:
           type: string
           format: date-time
@@ -528,9 +204,3 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/Account'
-    Transaction:
-      description: Transaction object that needs to be added to the database
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/Transaction'
