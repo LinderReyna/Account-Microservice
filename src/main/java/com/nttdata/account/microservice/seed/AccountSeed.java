@@ -24,7 +24,7 @@ public class AccountSeed {
                 .id("63859d33434879511128cf355")
                 .accountNumber("193-1315150-0-35")
                 .cci("002-193-00131515003512")
-                .productId("63859d33434879511128cf355")
+                .productId("63859d33434879511128cf356")
                 .titularId(titular)
                 .status("ACTIVA")
                 .availableBalance(BigDecimal.ZERO)
