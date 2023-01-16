@@ -1,5 +1,6 @@
 package com.nttdata.account.microservice.service;
 
+import com.nttdata.account.microservice.bus.Producer;
 import com.nttdata.account.microservice.client.CustomerClient;
 import com.nttdata.account.microservice.client.ProductClient;
 import com.nttdata.account.microservice.exception.InvalidDataException;
@@ -37,6 +38,8 @@ public class AccountServiceImpl implements AccountService {
     private CustomerClient customerClient;
     @Autowired
     private ProductClient productClient;
+    @Autowired
+    private Producer producer;
 
     public Mono<Account> save(Mono<Account> account) {
         return account.filterWhen(this::validTitular)
@@ -44,7 +47,8 @@ public class AccountServiceImpl implements AccountService {
                 .map(this::validBalance)
                 .map(mapper::toDocument)
                 .flatMap(repository::save)
-                .map(mapper::toModel);
+                .map(mapper::toModel)
+                .doOnNext(a -> this.producer.sendMessage(a.getId() + "|" + a.getTitularId().toString()));
     }
 
     public Mono<Void> deleteById(String id) {
